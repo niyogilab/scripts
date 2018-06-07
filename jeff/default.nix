@@ -8,6 +8,7 @@ buildEnv {
     # (import ./plate-metadata-generator)
     # (import ./simple-growth-curves)
     # (import ./tecan-growth-curves)
+    (import ./cyano-cpf1-primers)
     (import ./qrcode-labels)
 
     # tecan scripts
