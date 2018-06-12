@@ -41,13 +41,12 @@ def get_coordinates(args, locus):
     log(args, '%s coordinates: %s' % (locus, coords))
     return coords
 
-def get_sequences(args):
+def get_sequences(args, genome):
   loci = args['locusids']
   seqs = []
-  for seq_record in SeqIO.parse(args['genome'], 'genbank'):
-    for seq_feature in seq_record.features:
-      if seq_feature.type != 'CDS':
-        continue
+  for seq_feature in genome.features:
+    if seq_feature.type != 'CDS':
+      continue
     # adapted from:
     # http://www2.warwick.ac.uk/fac/sci/moac/people/students/peter_cock/python/genbank2fasta
     # for seq_record in SeqIO.parse(ingbk, 'genbank'):
@@ -57,16 +56,18 @@ def get_sequences(args):
         # assert len(seq_feature.qualifiers['locus_tag']) == 1
         # assert len(seq_feature.qualifiers['product']) == 1
         # assert len(seq_feature.qualifiers['translation']) == 1
-      sid = seqid(seq_feature)
-      #log(args, 'checking seqid %s' % sid)
-      if sid in loci:
-        seqstr = str(seq_feature.extract(seq_record.seq))
-        seqs.append({'locusid': sid, 'sequence': seqstr})
+    sid = seqid(seq_feature)
+    #log(args, 'checking seqid %s' % sid)
+    if sid in loci:
+      seqstr = str(seq_feature.extract(genome.seq))
+      start  = int(seq_feature.location.start)
+      end    = int(seq_feature.location.end)
+      seqs.append({'locusid': sid, 'sequence': seqstr, 'start': start, 'end': end})
 
-    sequence = 'acagacgtactgatcgtagctacgtacgtacggtcgcc' # TODO write this
-    log(args, 'sequences found: %s' % seqs)
-    # log(args, '%s sequence: %s' % (loci, sequence))
-    return seqs
+    # sequence = 'acagacgtactgatcgtagctacgtacgtacggtcgcc' # TODO write this
+  log(args, 'sequences found: %s' % seqs)
+  # log(args, '%s sequence: %s' % (loci, sequence))
+  return seqs
 
 def find_targets(args, locus, sequence):
   # TODO also need to find reverse targets?
@@ -86,13 +87,12 @@ def guide_rna(args, seq):
     log(args, '%s guide rna reverse primer: %s' % (locus, primer_rev))
     return (primer_fwd, primer_rev)
 
-def hr_template(args, seq, homology_bp=750):
+def hr_template(args, genome, seq, homology_bp=750):
   locus = seq['locusid']
-  gene_start , gene_end = get_coordinates(args, locus)
-  left_start  = gene_start - homology_bp
-  left_end    = gene_start
-  right_start = gene_end
-  right_end   = gene_end + homology_bp
+  left_start  = seq['start'] - homology_bp
+  left_end    = seq['start']
+  right_start = seq['end']
+  right_end   = seq['end'] + homology_bp
   log(args, '%s left  flank (%s-%sbp) forward primer' % (locus, left_start , left_end))
   log(args, '%s left  flank (%s-%sbp) reverse primer' % (locus, left_start , left_end))
   log(args, '%s right flank (%s-%sbp) forward primer' % (locus, right_start, right_end))
@@ -112,11 +112,16 @@ def parse(args):
 def main():
   args = parse(docopt(__doc__, version='cpf1primers 0.1'))
   log(args, args)
-  seqs = get_sequences(args)
-  headers = ['locus', 'guide_fwd', 'guide_rev']
+  genome = list(SeqIO.parse(args['genome'], 'genbank'))[0] # TODO look up the right way
+  log(args, 'genom: %s' % str(genome.seq)[:1000])
+  seqs = get_sequences(args, genome)
+  headers = ['locus', 'guide_fwd', 'guide_rev', 'left_fwd', 'left_rev', 'right_fwd', 'right_rev']
   print('\t'.join(headers))
   for seq in seqs:
+      row = [seq['locusid']]
       guide_fwd, guide_rev = guide_rna(args, seq)
-      row = (seq['locusid'], guide_fwd, guide_rev)
+      row += [guide_fwd, guide_rev]
+      # left_fwd, left_rev, right_fwd, right_rev = hr_template(args, seq)
+      hr_template(args, genome, seq)
+      # row += [left_fwd, left_rev, right_fwd, right_rev]
       print('\t'.join(row))
-      # hr_template(args, seq)
