@@ -87,16 +87,28 @@ def guide_rna(args, seq):
     log(args, '%s guide rna reverse primer: %s' % (locus, primer_rev))
     return (primer_fwd, primer_rev)
 
-def hr_template(args, genome, seq, homology_bp=750):
+def hr_primers(args, genome, seq, homology_bp=750):
   locus = seq['locusid']
+
+  # get flanking sequences
   left_start  = seq['start'] - homology_bp
   left_end    = seq['start']
   right_start = seq['end']
   right_end   = seq['end'] + homology_bp
-  log(args, '%s left  flank (%s-%sbp) forward primer' % (locus, left_start , left_end))
-  log(args, '%s left  flank (%s-%sbp) reverse primer' % (locus, left_start , left_end))
-  log(args, '%s right flank (%s-%sbp) forward primer' % (locus, right_start, right_end))
-  log(args, '%s right flank (%s-%sbp) reverse primer' % (locus, right_start, right_end))
+
+  # design primers for them
+  # note this is just a basic first pass! TODO use primer3 here
+  left_fwd  = str(genome.seq[left_start  : left_start  + 20])
+  right_fwd = str(genome.seq[right_start : right_start + 20].reverse_complement())
+  left_rev  = str(genome.seq[left_end  - 20 : left_end ])
+  right_rev = str(genome.seq[right_end - 20 : right_end].reverse_complement())
+
+  log(args, '%s left  flank (%s-%sbp) forward primer: %s' % (locus, left_start , left_end, left_fwd))
+  log(args, '%s left  flank (%s-%sbp) reverse primer: %s' % (locus, left_start , left_end, left_rev))
+  log(args, '%s right flank (%s-%sbp) forward primer: %s' % (locus, right_start, right_end, right_fwd))
+  log(args, '%s right flank (%s-%sbp) reverse primer: %s' % (locus, right_start, right_end, right_rev))
+
+  return [left_fwd, left_rev, right_fwd, right_rev]
 
 def log(args, msg):
   if args['verbose']:
@@ -121,7 +133,6 @@ def main():
       row = [seq['locusid']]
       guide_fwd, guide_rev = guide_rna(args, seq)
       row += [guide_fwd, guide_rev]
-      # left_fwd, left_rev, right_fwd, right_rev = hr_template(args, seq)
-      hr_template(args, genome, seq)
-      # row += [left_fwd, left_rev, right_fwd, right_rev]
+      # left_fwd, left_rev, right_fwd, right_rev = hr_primers(args, seq)
+      row += hr_primers(args, genome, seq)
       print('\t'.join(row))
