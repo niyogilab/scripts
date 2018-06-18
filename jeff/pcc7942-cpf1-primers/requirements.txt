@@ -1,0 +1,3 @@
+numpy
+biopython
+Primer3-py

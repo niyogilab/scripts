@@ -9,5 +9,11 @@ buildEnv {
     # (import ./simple-growth-curves)
     # (import ./tecan-growth-curves)
     (import ./qrcode-labels)
+
+    # tecan scripts
+    (import ./tidymap)
+    (import ./tidytecan)
+    (import ./mergemeta)
+    (import ./mergetecan)
   ];
 }

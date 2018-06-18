@@ -1,0 +1,32 @@
+Merges multiple plate metadata files into one comprehensive table. Expects
+a very particular format which is best understood by looking at some examples!
+
+Usage:
+  mergemeta [(-v|-vv|-vvv) --out <outcsv>] --plate <plate> <map> ...
+  mergemeta (-h | --help)
+
+Options:
+  -h --help           Show this screen.
+
+  -v                  Increase verbosity. Use once for warnings, twice for
+                      info, and three times for debugging.
+
+
+  -o --out <outcsv>   Write the outcsv CSV to a file. If none, prints to
+                      stdout.
+
+  -p --plate <plate>  A CSV file with plate metadata (ID, start time,
+                      conditions, etc.)
+
+  <map>               A CSV file that expands a platecsv with per-well
+                      metadata. You need one of these per metadata field per
+                      plate (but they can be reused if multiple plates
+                      follow the same pattern). You'll almost always want
+                      these to label strains, and sometimes other things
+                      that vary like start time, volume, or antibiotic
+                      concentration.
+
+                      Note that mapcsvs need to be named according to the
+                      plate ID + metadata field they expand on. This part is
+                      a little brittle; you need to make sure to name the
+                      files correctly!

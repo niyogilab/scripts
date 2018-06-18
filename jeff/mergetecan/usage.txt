@@ -1,0 +1,31 @@
+Merges Tecan readings with plate metadata. Expects one metadata table in
+the format produced by mergemeta, and one or more sets of tecan readings
+in the format produced by tidytecan.
+
+Tecan readings that don't match any of described wells will be silently
+ignored, because that makes it "just work" with a glob of all files from
+tidytecan. If you're not sure the right ones are being loaded, turn up
+verbosity to check.
+
+Usage:
+  mergetecan [(-v|-vv|-vvv) --out <outcsv>] --meta <meta> <tecan> ...
+  mergetecan (-h | --help)
+
+Options:
+  -h --help          Show this screen.
+
+  -v                 Increase the logging verbosity. Use once for warnings,
+                     twice for info, and three times for debugging.
+
+  -o --out <outcsv>  Write the outcsv CSV to a file. If none, prints to stdout.
+
+  -m --meta <meta>   A spreadsheet that lists metadata for each well of each
+                     plate. Can be all sorts of things: strain, start time,
+                     volume, antibiotic concentration, temperature, treatment
+                     label, etc.
+
+  <tecan>            Tecan file to parse and merge with the plate metadata.
+                     Plate IDs are detected based on Tecan filename + sheet
+                     name + measurement label (set in iControl/Magellan). This
+                     part is a little brittle; make sure to name the files
+                     correctly!

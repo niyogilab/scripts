@@ -1,0 +1,11 @@
+Converts a map file (CSV with a grid of locations) to "tidy" format for R.
+
+Usage:
+  tidymap <colname> <incsv> <outcsv>
+  tidymap (-h | --help)
+
+Options:
+  <colname>  What to call the "values" (for example 'strain' or 'antibiotic').
+  <incsv>    The input CSV file, which should be in grid/map format.
+  <outcsv>   Where to write the "tidy" output CSV file.
+  -h --help  Show this screen.

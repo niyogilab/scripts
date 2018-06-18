@@ -2,4 +2,5 @@
 *.pdf
 *.pyc
 *.sw*
+.venv
 result
