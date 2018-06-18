@@ -7,7 +7,7 @@ You should be able to build and run each script with all its dependencies like t
 
 Each one should have an `examples` directory with valid inputs and/or outputs you can try.
 
-Finally there's a top-level [default.nix]() to build everything at once,
+Finally there's a top-level [default.nix][2] to build everything at once,
 which is probably only useful to me.
 
 You can also run things without Nix, but you'll still need to read
@@ -15,3 +15,4 @@ You can also run things without Nix, but you'll still need to read
 Python packages.
 
 [1]: https://nixos.org/nix
+[2]: default.nix
