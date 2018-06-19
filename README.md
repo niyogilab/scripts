@@ -7,6 +7,7 @@ Each lab member has their own setup, so check the README in their subfolder for 
 
 | script | description |
 |:-------|:------------|
+| [GrowthCurveFunctions](tim/) | Functions for Zofingeiensis growth curves
 | [tnseq-growth-curves](jeff/tnseq-growth-curves/) | Plots doublings given a spreadsheet of OD measurements and a list of treatments
 | led-array-programs | Describe a pattern of light levels in Python, and this writes a program for our custom growth chamber LED arrays
 | [merge-metadata](jeff/mergemeta/) | Merges multiple plate maps into one big tidy metadata table
