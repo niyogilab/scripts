@@ -1,0 +1,13 @@
+Takes a table of OD750 measurements and a table of which flask is in which
+treatment, and plots growth curves. Plots raw OD, doublings since last
+dilution, and doublings total. Useful for TnSeq outgrowths.
+
+Usage:
+  tnseq-growth-curves (-h | --help)
+  tnseq-growth-curves [-o <od750>] [-c <colors>] [-p <plots>]
+
+Options:
+  -h --help             Show this help text.
+  -o --od750  <od750>   Spreadsheet of OD measurements and dilutions [default: od750.tsv]
+  -c --colors <colors>  Spreadsheet listing the color for each treamtment [default: colors.tsv]
+  -p --plots  <plots>   Filename for the output plots [default: plots.png]
