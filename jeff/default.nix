@@ -6,7 +6,6 @@ buildEnv {
     # (import ./absorbance-scans)
     # (import ./led-array-programs)
     # (import ./plate-metadata-generator)
-    # (import ./simple-growth-curves)
     # (import ./tecan-growth-curves)
     (import ./pcc7942-cpf1-primers)
     (import ./qrcode-labels)
@@ -16,5 +15,6 @@ buildEnv {
     (import ./tidytecan)
     (import ./mergemeta)
     (import ./mergetecan)
+    (import ./tnseq-growth-curves)
   ];
 }
