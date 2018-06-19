@@ -16,5 +16,6 @@ Each lab member has their own setup, so check the README in their subfolder for 
 | tecan-absorbance-scans | Plots absorbance scans from Tecan data
 | [pcc7942-cpf1-primers](jeff/pcc7942-cpf1-primers/) | Generates initial primers to order for editing the PCC 7942 genome with CRISPR/Cpf1
 | [qrcode-labels](jeff/qrcode-labels/) | Generates sheets of random QR codes to print on labels
+| algalcommand-web-monitor | Remote plotting of photobioreactor data + email alerts when conditions go out of bounds
 
 [1]: http://niyogilab.berkeley.edu
