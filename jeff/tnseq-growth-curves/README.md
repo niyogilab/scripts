@@ -3,7 +3,7 @@ TnSeq Growth Curves
 
 Takes a table of OD750 measurements and a table of treatment colors, and plots
 growth curves. Takes dilutions into account to add up total generations grown,
-which is useful for TnSeq experiments.
+which is useful for TnSeq experiments. Dots and error bars are mean +/- one standard deviation.
 
 The example should work like this:
 
