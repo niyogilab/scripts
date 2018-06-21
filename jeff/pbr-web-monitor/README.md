@@ -1,5 +1,5 @@
-AlgalCommand Web Monitor
-========================
+ePBR Web Monitor
+================
 
 We have some photobioreactors, which are really cool and run by a program called AlgalCommand.
 Unfortunately they're also 1) fairly unreliable and 2) way down in the basement.

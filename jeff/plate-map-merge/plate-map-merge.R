@@ -19,7 +19,7 @@ read_plates <- function(filename)
 read_map <- function(filename, colname) {
   # TODO: check that wells match the generated list
   tmp <- tempfile(fileext='.csv')
-  system(paste('tidymap', colname, filename, tmp))
+  system(paste('plate-map-table', colname, filename, tmp))
   read.csv(tmp, colClasses='character')
 }
 

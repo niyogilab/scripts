@@ -1,1 +1,0 @@
-from .tidytecan import main

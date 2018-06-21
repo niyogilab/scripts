@@ -1,11 +1,11 @@
 with import <nixpkgs> {};
-let tidytecan =
+let tecan-extract-table =
 
 { python27Packages, xlsx2csv }:
 with python27Packages;
 
 buildPythonPackage {
-  name = "tidytecan-0.4";
+  name = "tecan-extract-table-1.0";
   namePrefix = "";
   src = ./.;
   propagatedBuildInputs = [ xlsx2csv docopt ];
@@ -13,4 +13,4 @@ buildPythonPackage {
   dontStrip = true;
 }
 
-; in callPackage tidytecan {}
+; in callPackage tecan-extract-table {}

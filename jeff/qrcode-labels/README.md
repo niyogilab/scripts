@@ -1,5 +1,5 @@
-qrlabels
-========
+QRCode Label Generator
+======================
 
 Generates sheets of QR codes that can be printed on labels. I use the
 [example commands](https://github.com/jefdaj/qrlabels/tree/master/examples) with

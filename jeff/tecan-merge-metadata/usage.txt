@@ -1,15 +1,15 @@
 Merges Tecan readings with plate metadata. Expects one metadata table in
 the format produced by mergemeta, and one or more sets of tecan readings
-in the format produced by tidytecan.
+in the format produced by tecan-extract-table.
 
 Tecan readings that don't match any of described wells will be silently
 ignored, because that makes it "just work" with a glob of all files from
-tidytecan. If you're not sure the right ones are being loaded, turn up
-verbosity to check.
+tecan-extract-table. If you're not sure the right ones are being loaded, turn
+up verbosity to check.
 
 Usage:
-  mergetecan [(-v|-vv|-vvv) --out <outcsv>] --meta <meta> <tecan> ...
-  mergetecan (-h | --help)
+  tecan-merge-metadata [(-v|-vv|-vvv) --out <outcsv>] --meta <meta> <tecan> ...
+  tecan-merge-metadata (-h | --help)
 
 Options:
   -h --help          Show this screen.

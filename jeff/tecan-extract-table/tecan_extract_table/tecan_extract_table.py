@@ -12,7 +12,7 @@ from time       import strptime, strftime
 
 ### logging ###
 
-log = Logger('tidytecan')
+log = Logger('tecan-extract-table')
 log.addHandler(StreamHandler(stderr))
 
 ### parse each type of tecan reading ###
@@ -212,7 +212,7 @@ def write_rows(rows, outcsv):
 ### command line interface ###
 
 def main():
-    args = docopt(get_data('tidytecan', 'usage.txt'))
+    args = docopt(get_data('tecan_extract_table', 'usage.txt'))
     log.setLevel(40 - 10 * args['-v'])
     log.info('read command line args:\n%s' % args)
     rows = parse_tecans(args['<tecan>'], args['--label'])

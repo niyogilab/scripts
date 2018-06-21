@@ -1,8 +1,8 @@
 Converts a map file (CSV with a grid of locations) to "tidy" format for R.
 
 Usage:
-  tidymap <colname> <incsv> <outcsv>
-  tidymap (-h | --help)
+  plate-map-table <colname> <incsv> <outcsv>
+  plate-map-table (-h | --help)
 
 Options:
   <colname>  What to call the "values" (for example 'strain' or 'antibiotic').
