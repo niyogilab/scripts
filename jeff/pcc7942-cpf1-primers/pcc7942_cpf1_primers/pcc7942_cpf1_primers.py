@@ -6,8 +6,8 @@
 Generates a table of initial primers to try for Cpf1 knockouts of PCC 7942 genes.
 
 Usage:
-  cpf1primers (-h | --help)
-  cpf1primers [-v] [-g GENOME] LOCUS...
+  pcc7942-cpf1-primers (-h | --help)
+  pcc7942-cpf1-primers [-v] [-g GENOME] LOCUS...
 
 Options:
   -h, --help  Show this text

@@ -3,8 +3,8 @@
 from setuptools import setup
 
 setup(
-  name = 'cpf1primers',
-  version = '0.1',
-  packages = ['cpf1primers'],
-  entry_points = {'console_scripts': ['cpf1primers=cpf1primers:main']}
+  name = 'pcc7942_cpf1_primers',
+  version = '1.0',
+  packages = ['pcc7942_cpf1_primers'],
+  entry_points = {'console_scripts': ['pcc7942-cpf1-primers=pcc7942_cpf1_primers:main']}
 )

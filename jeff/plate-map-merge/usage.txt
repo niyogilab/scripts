@@ -1,9 +1,9 @@
 Merges multiple plate metadata files into one comprehensive table. Expects
-a very particular format which is best understood by looking at some examples!
+a very particular format which is best understood by looking at some examples.
 
 Usage:
-  mergemeta [(-v|-vv|-vvv) --out <outcsv>] --plate <plate> <map> ...
-  mergemeta (-h | --help)
+  plate-map-merge [(-v|-vv|-vvv) --out <outcsv>] --plate <plate> <map> ...
+  plate-map-merge (-h | --help)
 
 Options:
   -h --help           Show this screen.

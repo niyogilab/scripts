@@ -1,2 +1,2 @@
 with import <nixpkgs> {};
-callPackage ./cpf1primers.nix {}
+callPackage ./pcc7942-cpf1-primers.nix {}
