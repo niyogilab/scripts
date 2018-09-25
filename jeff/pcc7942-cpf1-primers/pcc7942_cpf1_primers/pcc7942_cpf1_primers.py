@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # TODO fix errors at beginning/end of chr, and allow pANL genes?
 
@@ -25,6 +25,7 @@ import re
 from Bio          import SeqIO
 from Bio.Seq      import Seq
 from Bio.Alphabet import generic_dna
+from copy         import deepcopy
 from docopt       import docopt
 from sys          import stderr
 
@@ -74,6 +75,7 @@ def get_sequences(args, genome):
 
 def find_targets(args, locus, sequence):
   # TODO also need to find reverse targets?
+  # TODO should the targets actually include the end of the left flank so they start immediately?
   pam_and_target = '[TC]T.{21}'
   targets = re.findall(pam_and_target, sequence)
   log(args, 'found %s potential CPF1 targets in %s: %s' % (len(targets), locus, str(targets)))
@@ -86,7 +88,9 @@ def guide_rna(args, seq):
     targets = find_targets(args, locus, seq['sequence'])
     # TODO any reason to be more selective?
     # TODO option to pick more than one per locus?
+    # TODO can i use primer3 here to to guess which ones will be more effective?
     target  = targets[0]
+    log(args, 'using the first one, %s' % target)
     primer_fwd = 'AGAT' + target[2:]
     primer_rev = 'AGAC' + str(Seq(target[2:], generic_dna).reverse_complement())
     log(args, '%s guide rna forward primer: %s' % (locus, primer_fwd))
@@ -96,50 +100,71 @@ def guide_rna(args, seq):
 # doing this once at the beginning is theoretically faster, but mostly simple
 # see https://libnano.github.io/primer3-py/quickstart.html#primer-design
 # TODO fiddle with these or find sane defaults on the web
-primer_args = {
-  'PRIMER_OPT_SIZE': 20,
-  'PRIMER_PICK_INTERNAL_OLIGO': 1,
-  'PRIMER_INTERNAL_MAX_SELF_END': 8,
-  'PRIMER_MIN_SIZE': 18,
-  'PRIMER_MAX_SIZE': 25,
-  'PRIMER_OPT_TM': 60.0,
-  'PRIMER_MIN_TM': 57.0,
-  'PRIMER_MAX_TM': 63.0,
-  'PRIMER_MIN_GC': 20.0,
-  'PRIMER_MAX_GC': 80.0,
-  'PRIMER_MAX_POLY_X': 100,
-  'PRIMER_INTERNAL_MAX_POLY_X': 100,
-  'PRIMER_SALT_MONOVALENT': 50.0,
-  'PRIMER_DNA_CONC': 50.0,
-  'PRIMER_MAX_NS_ACCEPTED': 0,
-  'PRIMER_MAX_SELF_ANY': 12,
-  'PRIMER_MAX_SELF_END': 8,
-  'PRIMER_PAIR_MAX_COMPL_ANY': 12,
-  'PRIMER_PAIR_MAX_COMPL_END': 8,
+PRIMER_ARGS = {
+
+  # pick left + right primers (TODO different for guide rna?)
+  'PRIMER_TASK': 'generic',
+  'PRIMER_PICK_LEFT_PRIMER'   : True,
+  'PRIMER_PICK_INTERNAL_OLIGO': False,
+  'PRIMER_PICK_RIGHT_PRIMER'  : True,
+
+  # 'PRIMER_OPT_SIZE': 20,
+  # 'PRIMER_INTERNAL_MAX_SELF_END': 8,
+  # 'PRIMER_MIN_SIZE': 18,
+  # 'PRIMER_MAX_SIZE': 25,
+  # 'PRIMER_OPT_TM': 60.0,
+  # 'PRIMER_MIN_TM': 57.0,
+  # 'PRIMER_MAX_TM': 63.0,
+  # 'PRIMER_MIN_GC': 20.0,
+  # 'PRIMER_MAX_GC': 80.0,
+  # 'PRIMER_MAX_POLY_X': 100,
+  # 'PRIMER_INTERNAL_MAX_POLY_X': 100,
+  # 'PRIMER_SALT_MONOVALENT': 50.0,
+  # 'PRIMER_DNA_CONC': 50.0,
+  # 'PRIMER_MAX_NS_ACCEPTED': 0,
+  # 'PRIMER_MAX_SELF_ANY': 12,
+  # 'PRIMER_MAX_SELF_END': 8,
+  # 'PRIMER_PAIR_MAX_COMPL_ANY': 12,
+  # 'PRIMER_PAIR_MAX_COMPL_END': 8,
   'PRIMER_PRODUCT_SIZE_RANGE': [[75,100],[100,125],[125,150],
                                [150,175],[175,200],[200,225]],
 }
 
+# TODO should i have a hybridization probe?
 # TODO extract and return just sequences first
 # TODO extract Tm too, and add to the table
-def run_primer3(seqid, seq, extra_seq_args={}):
+def run_primer3(args, seqid, seq, extra_seq_args={}):
+  extra_primer_args = {
+    # 'PRIMER_PRODUCT_SIZE_RANGE': [[100, 10000]]
+  }
   seq_args = {
     'SEQUENCE_ID': seqid,
-    'SEQUENCE_TEMPLATE': seq
+    'SEQUENCE_TEMPLATE': seq,
   }
   seq_args.update(extra_seq_args)
+  primer_args = deepcopy(PRIMER_ARGS)
+  primer_args.update(extra_primer_args)
+  log(args, 'primer_args: %s' % primer_args)
+  log(args, 'seq_args: %s' % seq_args)
   primers = primer3.designPrimers(seq_args, primer_args)
   return primers
 
-def primer3_left(seqid, seq):
-  return run_primer3(seqid, seq, {'SEQUENCE_FORCE_LEFT_END': len(seq)+1})
+def primer3_left(args, seqid, seq):
+  return run_primer3(args, seqid, seq, {'SEQUENCE_FORCE_LEFT_END': len(seq)}) # TODO one too many?
 
-def primer3_right(seqid, seq):
-  return run_primer3(seqid, seq, {'SEQUENCE_FORCE_RIGHT_START': 1})
+def primer3_right(args, seqid, seq):
+  return run_primer3(args, seqid, seq, {'SEQUENCE_FORCE_RIGHT_START': 1})
 
 # TODO primer3_grna
 
-def hr_primers(args, genome, seq, homology_bp=750):
+def extract_first_pair(args, p3res):
+  'extract just relevant info about the first primer pair'
+  return (p3res['PRIMER_LEFT_1_SEQUENCE' ],
+          '%0.1f' % p3res['PRIMER_LEFT_1_TM' ],
+          p3res['PRIMER_RIGHT_1_SEQUENCE'],
+          '%0.1f' % p3res['PRIMER_RIGHT_1_TM'])
+
+def hr_primers(args, genome, seq, homology_bp=1000):
   locus = seq['locusid']
 
   # get flanking sequences
@@ -149,26 +174,18 @@ def hr_primers(args, genome, seq, homology_bp=750):
   right_end   = seq['end'] + homology_bp
 
   # design primers for them
-  # note this is just a basic first pass!
-  # TODO use primer3 here
-  # left_fwd  = str(genome.seq[left_start  : left_start  + 20])
-  # right_fwd = str(genome.seq[right_start : right_start + 20].reverse_complement())
-  # left_rev  = str(genome.seq[left_end  - 20 : left_end ])
-  # right_rev = str(genome.seq[right_end - 20 : right_end].reverse_complement())
+  left_res  = run_primer3(args, 'left' , str(genome.seq[left_start  :  left_end]))
+  right_res = run_primer3(args, 'right', str(genome.seq[right_start : right_end]))
+  left_fwd_seq , left_fwd_tm , left_rev_seq , left_rev_tm  = extract_first_pair(args, left_res )
+  right_fwd_seq, right_fwd_tm, right_rev_seq, right_rev_tm = extract_first_pair(args, right_res)
 
-  left_fwd  = primer3_left('test1', str(genome.seq[left_start : left_end]))
-  print(left_fwd)
-  raise SystemExit
-  # left_rev  = 
-  # right_fwd = 
-  # right_rev = 
+  log(args, '%s left  flank (%s-%sbp) forward primer: %s (Tm=%s)' % (locus, left_start , left_end , left_fwd_seq , left_fwd_tm ))
+  log(args, '%s left  flank (%s-%sbp) reverse primer: %s (Tm=%s)' % (locus, left_start , left_end , left_rev_seq , left_rev_tm ))
+  log(args, '%s right flank (%s-%sbp) forward primer: %s (Tm=%s)' % (locus, right_start, right_end, right_fwd_seq, right_fwd_tm))
+  log(args, '%s right flank (%s-%sbp) reverse primer: %s (Tm=%s)' % (locus, right_start, right_end, right_rev_seq, right_rev_tm))
 
-  log(args, '%s left  flank (%s-%sbp) forward primer: %s' % (locus, left_start , left_end , left_fwd ))
-  log(args, '%s left  flank (%s-%sbp) reverse primer: %s' % (locus, left_start , left_end , left_rev ))
-  log(args, '%s right flank (%s-%sbp) forward primer: %s' % (locus, right_start, right_end, right_fwd))
-  log(args, '%s right flank (%s-%sbp) reverse primer: %s' % (locus, right_start, right_end, right_rev))
-
-  return [left_fwd, left_rev, right_fwd, right_rev]
+  return [left_fwd_seq,  left_fwd_tm,  left_rev_seq,  left_rev_tm,
+         right_fwd_seq, right_fwd_tm, right_rev_seq, right_rev_tm]
 
 def log(args, msg):
   if args['verbose']:
@@ -187,12 +204,14 @@ def main():
   genome = list(SeqIO.parse(args['genome'], 'genbank'))[0] # TODO look up the right way
   # log(args, 'genome: %s' % str(genome.seq)[:1000])
   seqs = get_sequences(args, genome)
-  headers = ['locus', 'guide_fwd', 'guide_rev', 'left_fwd', 'left_rev', 'right_fwd', 'right_rev']
+  headers = ['locus_ID', 'gRNA_fwd', 'gRNA_rev',
+              'left_fwd_seq',  'left_fwd_tm', ' left_rev_seq',  'left_rev_tm',
+             'right_fwd_seq', 'right_fwd_tm', 'right_rev_seq', 'right_rev_tm']
   print('\t'.join(headers))
   for seq in seqs:
       row = [seq['locusid']]
       guide_fwd, guide_rev = guide_rna(args, seq)
       row += [guide_fwd, guide_rev]
-      # left_fwd, left_rev, right_fwd, right_rev = hr_primers(args, seq)
+      # left_fwd, left_rev, right_fwd, right_rev = hr_primers(args, genome, seq)
       row += hr_primers(args, genome, seq)
       print('\t'.join(row))
