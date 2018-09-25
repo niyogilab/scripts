@@ -8,7 +8,7 @@ buildPythonPackage {
   propagatedBuildInputs = [
     docopt
     biopython
-    # Primer3-py
+    (import ./primer3.nix)
   ];
   doCheck = false;
   dontStrip = true;
