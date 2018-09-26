@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
-# TODO fix errors at beginning/end of chr, and allow pANL genes?
-
 '''
 Generates a table of initial primers to try for Cpf1 knockouts of PCC 7942 genes.
+
+Designed for markerless KOs with pSL2680 from the Pakrasi lab (AddGene plasmid #85581).
+The crRNA pair should be annealed and ligated into the plasmid directly;
+left and right pairs are for generating a standard HR template by PCR with the target gene missing.
+The final HR template has KpnI and SalI sites for integrating into pSL2680.
 
 Usage:
   pcc7942_cpf1_primers (-h | --help)
@@ -204,7 +207,7 @@ def main():
   genome = list(SeqIO.parse(args['genome'], 'genbank'))[0] # TODO look up the right way
   # log(args, 'genome: %s' % str(genome.seq)[:1000])
   seqs = get_sequences(args, genome)
-  headers = ['locus_ID', 'gRNA_fwd', 'gRNA_rev',
+  headers = ['locus_ID', 'crRNA_fwd', 'crRNA_rev',
               'left_fwd_seq',  'left_fwd_tm', ' left_rev_seq',  'left_rev_tm',
              'right_fwd_seq', 'right_fwd_tm', 'right_rev_seq', 'right_rev_tm']
   print('\t'.join(headers))
