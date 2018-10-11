@@ -177,7 +177,7 @@ def suggest_primers(args, seq, extra_seq_args={}):
     # see https://libnano.github.io/primer3-py/quickstart.html#primer-design
     'PRIMER_TASK': 'generic',
     'PRIMER_PICK_LEFT_PRIMER'   : True,
-    #'PRIMER_PICK_INTERNAL_OLIGO': True,
+    'PRIMER_PICK_INTERNAL_OLIGO': False, # TODO do I want this too for checking?
     'PRIMER_PICK_RIGHT_PRIMER'  : True,
     'PRIMER_PRODUCT_SIZE_RANGE': [700, 1000],
     'PRIMER_OPT_SIZE': 20,
@@ -203,6 +203,43 @@ def suggest_primers(args, seq, extra_seq_args={}):
   # log(args, 'seq_args: %s' % seq_args)
   primers = primer3.designPrimers(seq_args, primer_args)
   # TODO parse this into a list of simpler dicts and return thoes
+  return primers
+
+def check_primers(args, seq, left_primer, right_primer):
+  seq_args = {
+    'SEQUENCE_ID': 'seqid', # TODO any reason to have use this?
+    'SEQUENCE_TEMPLATE': seq,
+    'SEQUENCE_PRIMER': left_primer,
+    'SEQUENCE_PRIMER_REVCOMP': right_primer, # TODO reverse complement it?
+  }
+  # seq_args.update(extra_seq_args)
+  primer_args = {
+    # see https://libnano.github.io/primer3-py/quickstart.html#primer-design
+    'PRIMER_TASK': 'check_primers',
+    'PRIMER_PICK_LEFT_PRIMER'   : False,
+    'PRIMER_PICK_INTERNAL_OLIGO': False,
+    'PRIMER_PICK_RIGHT_PRIMER'  : False,
+    'PRIMER_PRODUCT_SIZE_RANGE': [700, 1000],
+    'PRIMER_OPT_SIZE': 20,
+    'PRIMER_INTERNAL_MAX_SELF_END': 8,
+    'PRIMER_MIN_SIZE': 18,
+    'PRIMER_MAX_SIZE': 36,
+    'PRIMER_OPT_TM': 62.0,
+    'PRIMER_MIN_TM': 57.0,
+    'PRIMER_MAX_TM': 88.0,
+    'PRIMER_MIN_GC': 20.0,
+    'PRIMER_MAX_GC': 80.0,
+    'PRIMER_MAX_POLY_X': 100,
+    'PRIMER_INTERNAL_MAX_POLY_X': 100,
+    'PRIMER_SALT_MONOVALENT': 50.0,
+    'PRIMER_DNA_CONC': 50.0,
+    'PRIMER_MAX_NS_ACCEPTED': 10,
+    'PRIMER_MAX_SELF_ANY': 12,
+    'PRIMER_MAX_SELF_END': 8,
+    'PRIMER_PAIR_MAX_COMPL_ANY': 12,
+    'PRIMER_PAIR_MAX_COMPL_END': 8,
+  }
+  primers = primer3.designPrimers(seq_args, primer_args)
   return primers
 
 # TODO does this mean I should switch to Gibson because it can use almost any sequence equally?
@@ -231,11 +268,11 @@ def simplify_results(args, p3res):
     # keys = [k for k in p3res.keys() if '_%d_' % n in k]
     #print(p3res)
     keys = \
-      { 'PRIMER_LEFT_%d_SEQUENCE'     % n: 'left_seq'
+      { 'PRIMER_LEFT_%d_SEQUENCE'     % n: 'left_primer'
       , 'PRIMER_LEFT_%d_TM'           % n: 'left_tm'
-      , 'PRIMER_RIGHT_%d_SEQUENCE'    % n: 'right_seq'
+      , 'PRIMER_RIGHT_%d_SEQUENCE'    % n: 'right_primer'
       , 'PRIMER_RIGHT_%d_TM'          % n: 'right_tm'
-      , 'PRIMER_PAIR_%d_PRODUCT_SIZE' % n: 'size'
+      , 'PRIMER_PAIR_%d_PRODUCT_SIZE' % n: 'product_size'
       }
     res = {}
     for k in keys.keys():
@@ -257,12 +294,29 @@ def simplify_results(args, p3res):
 # add restriction sites to flank primers and re-score #
 #######################################################
 
-def add_restriction_sites(args, pairs):
-  # kpnI = 'XXXXX'
+def check_no_kpnI_site(args, seq):
+  kpnI = 'GGTACC'.lower()
+  return len(re.findall(kpnI, seq.lower())) == 0
+
+def add_restriction_sites(args, seq, pair):
+  "takes a primer pair ('left_primer' and 'right_primer' keys) and recalculates it with the restriction sites"
+  # TODO add the sites to the sequences
+  # TODO add a little overhang to make KpnI work better
+  # TODO use gibson to join the flanks, just not for the ends?
+  # TODO check using ipcress
+  # TODO should there be two different sites to prevent it going in the wrong way?
+  kpnI = 'GGTACC'.lower()
+  pair2 = \
+    { 'left_primer' : kpnI + pair['left_primer']
+    , 'right_primer': kpnI + pair['right_primer']
+    }
+  print(pair2)
+  # pair3 = check_primers(args, seq, pair2['left_primer'], pair2['right_primer'])
+  # print()
+  return pair2 # TODO recalculate
   # salI = 'YYYYY'
   # TODO reverse complement the rev one?
   # pairs = [(kpnI + fwd
-  pass
 
 
 ########
@@ -316,19 +370,30 @@ def main():
   #            'right_fwd_seq', 'right_fwd_tm', 'right_rev_seq', 'right_rev_tm']
   # print('\t'.join(headers))
 
-  # TODO this should convert each locus dict to a dict of primer dicts:
-  #        { 'id': ..., 'crRNA': ..., 'left_flank': {'fwd': ..., 'rev': ....}, ...}
-  #        then can add whatever info needed in json, like expected product size and Tm
   primers_by_seq = {}
   for seq in seqs:
       log(args, 'seq: %s' % shorten_seqs(args, seq), 1)
       # row = [seq['id']]
+
       primers = {}
       primers['crRNA'] = crRNA(args, seq)
-      # primers[ 'left_flank'] =  suggest_left_flank_primers(args, seq['left' ])
-      # primers[ 'left_flank'] =  suggest_primers(args, seq['left' ])
+
+      assert check_no_kpnI_site(args, seq['left'])
+      assert check_no_kpnI_site(args, seq['right'])
+      log(args, 'cool, no existing kpnI sites in the flanks.')
+
+      # here are the initial primers designed by primer3
       primers['left_flank' ] = simplify_results(args,  suggest_left_flank_primers(args, seq['left' ]))
       primers['right_flank'] = simplify_results(args, suggest_right_flank_primers(args, seq['right']))
+
+      # TODO now we add restriction sites to each pair
+      # TODO along with at least 2 more bp overhang
+      # TODO and have primer3 re-score them before deciding on the best? or ipcress or something else
+      pairs2 = []
+      for pair in primers['left_flank']:
+        pairs2.append((add_restriction_sites(args, seq['left'], pair)))
+      primers['left_flank'] = pairs2
+
       # row += [guide_fwd, guide_rev]
       # left_fwd, left_rev, right_fwd, right_rev = hr_primers(args, genome, seq)
       # row += hr_primers(args, genome, seq)
