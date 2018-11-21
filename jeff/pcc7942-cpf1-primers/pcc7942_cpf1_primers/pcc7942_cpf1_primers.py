@@ -26,6 +26,7 @@ Options:
 
 from __future__  import print_function
 
+import json
 import primer3
 import re
 
@@ -35,6 +36,8 @@ from Bio.Alphabet import generic_dna
 from copy         import deepcopy
 from docopt       import docopt
 from sys          import stderr
+
+RESTRICTION_SITE = 'GGTACC'
 
 # silence warnings
 import warnings
@@ -298,25 +301,26 @@ def check_no_kpnI_site(args, seq):
   kpnI = 'GGTACC'.lower()
   return len(re.findall(kpnI, seq.lower())) == 0
 
-def add_restriction_sites(args, seq, pair):
-  "takes a primer pair ('left_primer' and 'right_primer' keys) and recalculates it with the restriction sites"
-  # TODO add the sites to the sequences
-  # TODO add a little overhang to make KpnI work better
-  # TODO use gibson to join the flanks, just not for the ends?
-  # TODO check using ipcress
-  # TODO should there be two different sites to prevent it going in the wrong way?
-  kpnI = 'GGTACC'.lower()
-  pair2 = \
-    { 'left_primer' : kpnI + pair['left_primer']
-    , 'right_primer': kpnI + pair['right_primer']
-    }
-  print(pair2)
-  # pair3 = check_primers(args, seq, pair2['left_primer'], pair2['right_primer'])
-  # print()
-  return pair2 # TODO recalculate
-  # salI = 'YYYYY'
-  # TODO reverse complement the rev one?
-  # pairs = [(kpnI + fwd
+# def add_restriction_sites(args, seq, pair):
+#   "takes a primer pair ('left_primer' and 'right_primer' keys) and recalculates it with the restriction sites"
+#   # TODO add the sites to the sequences
+#   # TODO add a little overhang to make KpnI work better
+#   # TODO use gibson to join the flanks, just not for the ends?
+#   # TODO only need one of the sequences to be gibson per flank right? not both
+#   # TODO check using ipcress
+#   # TODO should there be two different sites to prevent it going in the wrong way?
+#   kpnI = 'GGTACC'.lower()
+#   pair2 = \
+#     { 'left_primer' : kpnI + pair['left_primer']
+#     , 'right_primer': kpnI + pair['right_primer']
+#     }
+#   print(pair2)
+#   # pair3 = check_primers(args, seq, pair2['left_primer'], pair2['right_primer'])
+#   # print()
+#   return pair2 # TODO recalculate
+#   # salI = 'YYYYY'
+#   # TODO reverse complement the rev one?
+#   # pairs = [(kpnI + fwd
 
 
 ########
@@ -389,10 +393,20 @@ def main():
       # TODO now we add restriction sites to each pair
       # TODO along with at least 2 more bp overhang
       # TODO and have primer3 re-score them before deciding on the best? or ipcress or something else
+      # TODO WHEN ADDING GIBSON OVERLAPS, NEED TO DEAL WITH PAIRS OF PRIMER PAIRS INSTEAD OF EACH SEPARATE
       pairs2 = []
       for pair in primers['left_flank']:
-        pairs2.append((add_restriction_sites(args, seq['left'], pair)))
+        l = RESTRICTION_SITE.lower() + pair['left_primer']
+        r = str(Seq(l[-15:], generic_dna).reverse_complement()).lower() + pair['right_primer']
+        pairs2.append({'left_primer': l, 'right_primer': r})
+        # pairs2.append((add_restriction_sites(args, seq['left'], pair)))
       primers['left_flank'] = pairs2
+      pairs2 = []
+      for pair in primers['right_flank']:
+        r = RESTRICTION_SITE.lower() + pair['right_primer']
+        l = str(Seq(r[-15:], generic_dna).reverse_complement()).lower() + pair['left_primer']
+        pairs2.append({'left_primer': l, 'right_primer': r})
+      primers['right_flank'] = pairs2
 
       # row += [guide_fwd, guide_rev]
       # left_fwd, left_rev, right_fwd, right_rev = hr_primers(args, genome, seq)
@@ -400,4 +414,4 @@ def main():
       # print('\t'.join(row))
       log(args, 'primers: %s' % primers, 2)
       primers_by_seq[seq['id']] = primers
-  log(args, 'primers by seq: %s' % primers_by_seq, 1)
+  log(args, 'primers_by_seq: %s' % json.dumps(primers_by_seq, sort_keys=True, indent=2), 0)
