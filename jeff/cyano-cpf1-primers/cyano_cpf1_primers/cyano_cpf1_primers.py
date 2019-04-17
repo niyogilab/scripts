@@ -276,7 +276,11 @@ def assert_primer3(args, seqid, seq, piece, seq_args, primer_args, res):
 
 def suggest_left_flank_primers(args, seq, max_th=47, no_thermo=False):
   seq_args = {'SEQUENCE_FORCE_RIGHT_START': len(seq['left'])-1}
-  primer_args = {'PRIMER_MIN_SIZE': 2, 'PRIMER_MAX_SIZE': 36, 'PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT': 0}
+  primer_args = {
+    'PRIMER_MIN_SIZE': 2,
+    'PRIMER_MAX_SIZE': 36,
+    'PRIMER_MAX_HAIRPIN_TH': max_th
+  }
   if no_thermo:
     primer_args['PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT'] = 0
   res = suggest_primers(args, seq['left'], seq_args, primer_args) # TODO is this right?
@@ -297,7 +301,11 @@ def suggest_left_flank_primers(args, seq, max_th=47, no_thermo=False):
 
 def suggest_right_flank_primers(args, seq, max_th=47, no_thermo=False):
   seq_args = {'SEQUENCE_FORCE_LEFT_START': 0}
-  primer_args = {'PRIMER_MIN_SIZE': 2, 'PRIMER_MAX_SIZE': 36, 'PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT': 0}
+  primer_args = {
+    'PRIMER_MIN_SIZE': 2,
+    'PRIMER_MAX_SIZE': 36,
+    'PRIMER_MAX_HAIRPIN_TH': max_th
+  }
   if no_thermo:
     primer_args['PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT'] = 0
   res = suggest_primers(args, seq['right'], seq_args, primer_args)
