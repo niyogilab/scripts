@@ -377,17 +377,23 @@ def print_row(*vals):
 
 def print_tsv(args, primers):
     # this is done the stupid way. the smart way would probably involve pandas?
-    print('\t'.join(['locusid', 'purpose', 'piece', 'primer', 'sequence']))
+    print('\t'.join(['locusid', 'purpose', 'piece', 'primer', 'pair', 'sequence']))
     for locusid in primers:
+        n = 1
         for pair in primers[locusid]['crRNA']:
-            print_row(locusid, 'knockout', 'crRNA', 'fwd', pair['fwd'])
-            print_row(locusid, 'knockout', 'crRNA', 'rev', pair['rev'])
+            print_row(locusid, 'knockout', 'crRNA', 'fwd', str(n), pair['fwd'])
+            print_row(locusid, 'knockout', 'crRNA', 'rev', str(n), pair['rev'])
+            n += 1
+        n = 1
         for pair in primers[locusid]['left_flank']:
-            print_row(locusid, 'knockout', 'left flank', 'fwd', pair['left_primer'])
-            print_row(locusid, 'knockout', 'left flank', 'rev', pair['right_primer'])
+            print_row(locusid, 'knockout', 'left flank', 'fwd', str(n), pair['left_primer'])
+            print_row(locusid, 'knockout', 'left flank', 'rev', str(n), pair['right_primer'])
+            n += 1
+        n = 1
         for pair in primers[locusid]['right_flank']:
-            print_row(locusid, 'knockout', 'right flank', 'fwd', pair['left_primer'])
-            print_row(locusid, 'knockout', 'right flank', 'rev', pair['right_primer'])
+            print_row(locusid, 'knockout', 'right flank', 'fwd', str(n), pair['left_primer'])
+            print_row(locusid, 'knockout', 'right flank', 'rev', str(n), pair['right_primer'])
+            n += 1
 
 def main():
   args = parse(docopt(__doc__, version='cpf1primers 0.2'))
