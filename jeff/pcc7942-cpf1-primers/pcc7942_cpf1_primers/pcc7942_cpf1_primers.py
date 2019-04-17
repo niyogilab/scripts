@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+# TODO redesign to more generically join pieces 1, 2, 3 or 1, 2, 3, 4 by gibson (are there specific designers for this?)
 # TODO 3) add Tms, lengths to output
 # TODO 4) redesign for just KpnI digest of backbone, then 3-part gibson
 # TODO 5) add some common-sense checks so you don't have to worry about it
@@ -65,6 +66,10 @@ def shorten_seqs(args, seq_dict):
     shorter[key] = val
   return shorter
 
+def check_no_kpnI_site(args, seq):
+  kpnI = KPNI_SITE.lower()
+  return len(re.findall(kpnI, seq.lower())) == 0
+
 
 ################################
 # find sequences in the genome #
@@ -108,6 +113,7 @@ def find_sequences(args, genome, loci, homology_bp=1000):
     })
   log(args, 'seqs: %s' % [shorten_seqs(args, s) for s in seqs], 2)
   return seqs
+
 
 ##############################
 # generate pre-crRNA primers #
@@ -168,9 +174,9 @@ def crRNA(args, seq):
   return primers
 
 
-#######################################
-# generate left + right flank primers #
-#######################################
+######################################
+# generate primer pairs with primer3 #
+######################################
 
 # TODO fiddle with these or find sane defaults on the web
 # TODO should i have a hybridization probe?
@@ -259,6 +265,10 @@ def suggest_left_flank_primers(args, seq):
 def suggest_right_flank_primers(args, seq):
   return suggest_primers(args, seq, {'SEQUENCE_FORCE_LEFT_START': 0})
 
+def suggest_coding_primers(args, seq):
+    return suggest_primers(args, seq, {'SEQUENCE_FORCE_LEFT_START': 0,
+                                       'SEQUENCE_FORCE_RIGHT_START': len(seq)-1})
+
 def extract_result(args, p3res, n):
   'extract info for just one pair of primers from primer3 result dict'
   # TODO return a dict here too, just a simpler one
@@ -299,35 +309,6 @@ def simplify_results(args, p3res):
     results.append(res)
     n += 1
 
-
-#######################################################
-# add restriction sites to flank primers and re-score #
-#######################################################
-
-def check_no_kpnI_site(args, seq):
-  kpnI = 'GGTACC'.lower()
-  return len(re.findall(kpnI, seq.lower())) == 0
-
-# def add_restriction_sites(args, seq, pair):
-#   "takes a primer pair ('left_primer' and 'right_primer' keys) and recalculates it with the restriction sites"
-#   # TODO add the sites to the sequences
-#   # TODO add a little overhang to make KpnI work better
-#   # TODO use gibson to join the flanks, just not for the ends?
-#   # TODO only need one of the sequences to be gibson per flank right? not both
-#   # TODO check using ipcress
-#   # TODO should there be two different sites to prevent it going in the wrong way?
-#   kpnI = 'GGTACC'.lower()
-#   pair2 = \
-#     { 'left_primer' : kpnI + pair['left_primer']
-#     , 'right_primer': kpnI + pair['right_primer']
-#     }
-#   print(pair2)
-#   # pair3 = check_primers(args, seq, pair2['left_primer'], pair2['right_primer'])
-#   # print()
-#   return pair2 # TODO recalculate
-#   # salI = 'YYYYY'
-#   # TODO reverse complement the rev one?
-#   # pairs = [(kpnI + fwd
 
 
 ########
@@ -370,7 +351,7 @@ def hr_primers(args, genome, seq, homology_bp=1000):
 
 def assert_primer3(args, seqid, flank, pairs):
     if len(pairs) == 0:
-        raise Exception('Primer3 found no primers for %s %s flank' % (seqid, flank))
+        raise Exception('Primer3 found no primers for %s %s' % (seqid, flank))
 
 def print_row(*vals):
     print('\t'.join(vals))
@@ -393,6 +374,11 @@ def print_tsv(args, primers):
         for pair in primers[locusid]['knockout']['right_flank']:
             print_row(locusid, 'knockout', 'right flank', 'fwd', str(n), pair['left_primer'])
             print_row(locusid, 'knockout', 'right flank', 'rev', str(n), pair['right_primer'])
+            n += 1
+        n = 1
+        for pair in primers[locusid]['complement']['coding']:
+            print_row(locusid, 'complement', 'coding sequence', 'fwd', str(n), pair['fwd']) # TODO pair key right?
+            print_row(locusid, 'complement', 'coding sequence', 'rev', str(n), pair['rev']) # TODO pair key right?
             n += 1
 
 def main():
@@ -448,9 +434,18 @@ def main():
       # row += hr_primers(args, genome, seq)
       # print('\t'.join(row))
       log(args, 'ko: %s' % ko, 2)
-      primers_by_seq[seq['id']] = {'knockout': ko}
 
       # TODO generate knock-in primers
+      cds = simplify_results(args, suggest_coding_primers(args, seq['cds']))[:args['nopts']]
+      assert_primer3(args, seq['id'], 'coding' , cds)
+      # print(cds)
+      ki = {'coding_sequence': cds}
+      log(args, 'ki: %s' % ki, 2)
+      # TODO always use the same NSI crRNA here? or skip if the pakrasi paper provides it
+      # TODO suggest left/right for coding sequence (will this usually fail??)
+      # TODO add overlap from the plasmid backbone (hardcoded first, then configurable later)
+
+      primers_by_seq[seq['id']] = {'knockout': ko, 'complement': ki}
 
   if args['format'] == 'table':
     print_tsv(args, primers_by_seq)
