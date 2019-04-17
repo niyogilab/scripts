@@ -8,7 +8,7 @@ buildEnv {
     # (import ./plate-metadata-generator)
     # (import ./tecan-growth-curves)
 
-    (import ./pcc7942-cpf1-primers)
+    (import ./cyano-cpf1-primers)
     (import ./plate-map-merge)
     (import ./plate-map-table)
     (import ./qrcode-labels)

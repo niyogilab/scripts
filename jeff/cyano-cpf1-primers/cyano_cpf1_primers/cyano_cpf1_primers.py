@@ -21,8 +21,8 @@ The final HR template can be integrated into pSL2680 at the KpnI site.
 Complementation primers amplify the target coding sequence and add flanks for the NSI plasmid (???).
 
 Usage:
-  pcc7942_cpf1_primers (-h | --help)
-  pcc7942_cpf1_primers [-v...] [-g GENOME] [-f FORMAT] [-n NOPTS] LOCUS...
+  cyano_cpf1_primers (-h | --help)
+  cyano_cpf1_primers [-v...] [-g GENOME] [-f FORMAT] [-n NOPTS] LOCUS...
 
 Options:
   -h, --help  Show this text
@@ -397,7 +397,7 @@ def parse(args):
     'genome'   : args['-g'],
     'format'   : args['-f'],
     'nopts'    : int(args['-n']),
-    'locusids' : ['Synpcc7942_%s' % a for a in args['LOCUS']]
+    'locusids' : ['Synpcc7942_%s' % a for a in args['LOCUS']] #TODO generalize this
   }
 
 def hr_primers(args, genome, seq, homology_bp=1000):
