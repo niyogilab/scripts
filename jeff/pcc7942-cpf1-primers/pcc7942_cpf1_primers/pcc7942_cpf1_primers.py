@@ -14,11 +14,11 @@
 '''
 Generates a table of initial primers to try for Cpf1 knockouts + knock-ins of cyano genes.
 Designed for markerless KOs with pSL2680 from the Pakrasi lab (AddGene plasmid #85581).
-It defaults to the PCC 7942 genome, but theoretically should work in at least 2973, 7942, 6803, or 7201.
+It defaults to the PCC 7942 genome, but theoretically should work in at least 2973, 7942, 6803, and 7201.
 The pre-crRNA pair should be annealed and ligated into the plasmid directly;
-left and right pairs are for generating a standard HR template by PCR with the target gene missing.
+left and right flank primers are for generating a standard HR template by PCR with the target gene missing.
 The final HR template can be integrated into pSL2680 at the KpnI site.
-(Neutral site inserts coming soon)
+Complementation primers amplify the target coding sequence and add flanks for the NSI plasmid (???).
 
 Usage:
   pcc7942_cpf1_primers (-h | --help)
