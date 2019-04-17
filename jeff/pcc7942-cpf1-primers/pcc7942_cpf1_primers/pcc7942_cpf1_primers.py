@@ -4,15 +4,18 @@
 # TODO 3) add Tms, lengths to output
 # TODO 4) redesign for just KpnI digest of backbone, then 3-part gibson
 # TODO 5) add some common-sense checks so you don't have to worry about it
-# TODO 6) check crRNA design against paper!
+# TODO 6) check pre-crRNA design against paper!
 # TODO 7) force design of simple gibson primers when primer3 won't cooperate and see if they work
 # TODO 8) add NSI knock-ins too so you can order both sets today
+
+# TODO hey you can primer3.calcTm() to check that the overlaps have reasonable Tm on their own!
+# TODO add GC_CLAMP?
 
 '''
 Generates a table of initial primers to try for Cpf1 knockouts + knock-ins of cyano genes.
 Designed for markerless KOs with pSL2680 from the Pakrasi lab (AddGene plasmid #85581).
 It defaults to the PCC 7942 genome, but theoretically should work in at least 2973, 7942, 6803, or 7201.
-The crRNA pair should be annealed and ligated into the plasmid directly;
+The pre-crRNA pair should be annealed and ligated into the plasmid directly;
 left and right pairs are for generating a standard HR template by PCR with the target gene missing.
 The final HR template can be integrated into pSL2680 at the KpnI site.
 (Neutral site inserts coming soon)
@@ -141,18 +144,18 @@ def find_cpf1_targets(args, locus, sequence):
 #       low_pick = (fwd, rev, tm)
 #   return low_pick
 
-def crRNA_primers_for_cpf1_target(target):
+def pre_crRNA_primers_for_cpf1_target(target):
   'generates fwd and rev primers with AarI sites added'
   return {
     'fwd': 'AGAT' + target,
     'rev': 'AGAC' + str(Seq(target, generic_dna).reverse_complement())
   }
 
-def crRNA(args, seq):
+def pre_crRNA(args, seq):
   locus = seq['id']
   # sequence = get_sequence(args, locus)
   targets = find_cpf1_targets(args, locus, seq['cds'])
-  primers = [crRNA_primers_for_cpf1_target(t) for t in targets[:args['nopts']]]
+  primers = [pre_crRNA_primers_for_cpf1_target(t) for t in targets[:args['nopts']]]
 
   # TODO any reason to be more selective?
   # TODO option to pick more than one per locus?
@@ -170,7 +173,7 @@ def crRNA(args, seq):
   # fwd_primer = primers['fwd']
   # rev_primer = primers['rev']
 
-  log(args, '%s crRNA primers: %s' % (locus, primers), 2)
+  log(args, '%s pre-crRNA primers: %s' % (locus, primers), 2)
   return primers
 
 
@@ -182,7 +185,7 @@ def crRNA(args, seq):
 # TODO should i have a hybridization probe?
 # TODO extract and return just sequences first
 # TODO extract Tm too, and add to the table
-def suggest_primers(args, seq, extra_seq_args={}):
+def suggest_primers(args, seq, extra_seq_args={}, extra_primer_args={}):
   seq_args = {
     'SEQUENCE_ID': 'seqid', # TODO any reason to have use this?
     'SEQUENCE_TEMPLATE': seq,
@@ -214,6 +217,7 @@ def suggest_primers(args, seq, extra_seq_args={}):
     'PRIMER_PAIR_MAX_COMPL_ANY': 12,
     'PRIMER_PAIR_MAX_COMPL_END': 8,
   }
+  primer_args.update(extra_primer_args)
   # log(args, 'primer_args: %s' % primer_args)
   # log(args, 'seq_args: %s' % seq_args)
   primers = primer3.designPrimers(seq_args, primer_args)
@@ -266,8 +270,26 @@ def suggest_right_flank_primers(args, seq):
   return suggest_primers(args, seq, {'SEQUENCE_FORCE_LEFT_START': 0})
 
 def suggest_coding_primers(args, seq):
-    return suggest_primers(args, seq, {'SEQUENCE_FORCE_LEFT_START': 0,
-                                       'SEQUENCE_FORCE_RIGHT_START': len(seq)-1})
+    seq_args = {
+      'SEQUENCE_FORCE_LEFT_START': 0,
+      'SEQUENCE_FORCE_RIGHT_START': len(seq['cds'])-1,
+    }
+    primer_args = {
+      'PRIMER_PRODUCT_SIZE_RANGE': [36, 99999], # both ends fixed anyway
+      'PRIMER_MIN_SIZE': 2,  # must be > min product size
+      'PRIMER_MAX_SIZE': 36, # the built-in max
+    }
+    res = suggest_primers(args, seq['cds'], seq_args, primer_args)
+    if res['PRIMER_LEFT_NUM_RETURNED'] == 0 or res['PRIMER_RIGHT_NUM_RETURNED'] == 0:
+        err = '\n'.join([
+          'Primer3 found no primers for %s cds :(' % seq['id'],
+          'sequence: %s' % seq['cds'],
+          'seq_args: %s' % seq_args,
+          'primer_args: %s' % primer_args,
+          'results: %s' % res
+        ])
+        raise SystemExit(err)
+    return res
 
 def extract_result(args, p3res, n):
   'extract info for just one pair of primers from primer3 result dict'
@@ -361,9 +383,9 @@ def print_tsv(args, primers):
     print('\t'.join(['locusid', 'construct', 'piece', 'primer', 'pair', 'sequence']))
     for locusid in primers:
         n = 1
-        for pair in primers[locusid]['knockout']['crRNA']:
-            print_row(locusid, 'knockout', 'crRNA', 'fwd', str(n), pair['fwd'])
-            print_row(locusid, 'knockout', 'crRNA', 'rev', str(n), pair['rev'])
+        for pair in primers[locusid]['knockout']['pre_crRNA']:
+            print_row(locusid, 'knockout', 'pre-crRNA', 'fwd', str(n), pair['fwd'])
+            print_row(locusid, 'knockout', 'pre-crRNA', 'rev', str(n), pair['rev'])
             n += 1
         n = 1
         for pair in primers[locusid]['knockout']['left_flank']:
@@ -376,9 +398,9 @@ def print_tsv(args, primers):
             print_row(locusid, 'knockout', 'right flank', 'rev', str(n), pair['right_primer'])
             n += 1
         n = 1
-        for pair in primers[locusid]['complement']['coding']:
-            print_row(locusid, 'complement', 'coding sequence', 'fwd', str(n), pair['fwd']) # TODO pair key right?
-            print_row(locusid, 'complement', 'coding sequence', 'rev', str(n), pair['rev']) # TODO pair key right?
+        for pair in primers[locusid]['complement']['coding_sequence']:
+            print_row(locusid, 'complement', 'coding sequence', 'fwd', str(n), pair[ 'left_primer'])
+            print_row(locusid, 'complement', 'coding sequence', 'rev', str(n), pair['right_primer'])
             n += 1
 
 def main():
@@ -391,7 +413,7 @@ def main():
   seqs = find_sequences(args, genome, args['locusids'], homology_bp=1000)
 
   # the rest, not yet
-  # headers = ['locus_ID', 'crRNA_fwd', 'crRNA_rev',
+  # headers = ['locus_ID', 'pre_crRNA_fwd', 'pre_crRNA_rev',
   #             'left_fwd_seq',  'left_fwd_tm', ' left_rev_seq',  'left_rev_tm',
   #            'right_fwd_seq', 'right_fwd_tm', 'right_rev_seq', 'right_rev_tm']
   # print('\t'.join(headers))
@@ -403,7 +425,7 @@ def main():
 
       # generate knockout primers
       ko = {}
-      ko['crRNA'] = crRNA(args, seq)
+      ko['pre_crRNA'] = pre_crRNA(args, seq)
       assert check_no_kpnI_site(args, seq['left'])
       assert check_no_kpnI_site(args, seq['right'])
       log(args, 'cool, no existing kpnI sites in the flanks.')
@@ -436,12 +458,11 @@ def main():
       log(args, 'ko: %s' % ko, 2)
 
       # TODO generate knock-in primers
-      cds = simplify_results(args, suggest_coding_primers(args, seq['cds']))[:args['nopts']]
-      assert_primer3(args, seq['id'], 'coding' , cds)
+      cds = simplify_results(args, suggest_coding_primers(args, seq))[:args['nopts']]
       # print(cds)
       ki = {'coding_sequence': cds}
       log(args, 'ki: %s' % ki, 2)
-      # TODO always use the same NSI crRNA here? or skip if the pakrasi paper provides it
+      # TODO always use the same NSI pre-crRNA here? or skip if the pakrasi paper provides it
       # TODO suggest left/right for coding sequence (will this usually fail??)
       # TODO add overlap from the plasmid backbone (hardcoded first, then configurable later)
 
