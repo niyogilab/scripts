@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO 0) longer, more descriptive varnames
-# TODO 1) refactor to pass around dicts rather than tuples
-# TODO 2) flag for table vs json and make people specify
 # TODO 3) add Tms, lengths to output
 # TODO 4) redesign for just KpnI digest of backbone, then 3-part gibson
 # TODO 5) add some common-sense checks so you don't have to worry about it
@@ -375,6 +372,23 @@ def assert_primer3(args, seqid, flank, pairs):
     if len(pairs) == 0:
         raise Exception('Primer3 found no primers for %s %s flank' % (seqid, flank))
 
+def print_row(*vals):
+    print('\t'.join(vals))
+
+def print_tsv(args, primers):
+    # this is done the stupid way. the smart way would probably involve pandas?
+    print('\t'.join(['locusid', 'purpose', 'piece', 'primer', 'sequence']))
+    for locusid in primers:
+        for pair in primers[locusid]['crRNA']:
+            print_row(locusid, 'knockout', 'crRNA', 'fwd', pair['fwd'])
+            print_row(locusid, 'knockout', 'crRNA', 'rev', pair['rev'])
+        for pair in primers[locusid]['left_flank']:
+            print_row(locusid, 'knockout', 'left flank', 'fwd', pair['left_primer'])
+            print_row(locusid, 'knockout', 'left flank', 'rev', pair['right_primer'])
+        for pair in primers[locusid]['right_flank']:
+            print_row(locusid, 'knockout', 'right flank', 'fwd', pair['left_primer'])
+            print_row(locusid, 'knockout', 'right flank', 'rev', pair['right_primer'])
+
 def main():
   args = parse(docopt(__doc__, version='cpf1primers 0.2'))
   log(args, 'args: %s' % args, 2)
@@ -433,6 +447,6 @@ def main():
       log(args, 'primers: %s' % primers, 2)
       primers_by_seq[seq['id']] = primers
   if args['format'] == 'table':
-    pass # TODO print table here
+    print_tsv(args, primers_by_seq)
   else:
     log(args, json.dumps(primers_by_seq, sort_keys=True, indent=2), 0)
