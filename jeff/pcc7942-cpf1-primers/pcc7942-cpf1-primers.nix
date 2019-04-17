@@ -2,7 +2,7 @@
 with pythonPackages;
 
 buildPythonPackage {
-  name = "cyano-cpf1-primers-0.1";
+  name = "cyano-cpf1-primers-0.2";
   namePrefix = "";
   src = ./.;
   buildInputs = [

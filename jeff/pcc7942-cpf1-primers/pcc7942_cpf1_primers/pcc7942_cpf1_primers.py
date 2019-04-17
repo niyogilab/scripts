@@ -2,7 +2,7 @@
 
 # TODO 0) longer, more descriptive varnames
 # TODO 1) refactor to pass around dicts rather than tuples
-# TODO 2) flag for table vs vs simplified IDT table vs json and make people specify
+# TODO 2) flag for table vs json and make people specify
 # TODO 3) add Tms, lengths to output
 # TODO 4) redesign for just KpnI digest of backbone, then 3-part gibson
 # TODO 5) add some common-sense checks so you don't have to worry about it
@@ -45,7 +45,7 @@ from docopt       import docopt
 from sys          import stderr
 
 # TODO any reason to make this configurable? maybe later
-RESTRICTION_SITE = 'GGTACC'
+KPNI_SITE = 'GGTACC'
 
 # silence warnings
 import warnings
@@ -271,7 +271,7 @@ def extract_result(args, p3res, n):
           '%0.1f' % p3res['PRIMER_RIGHT_%d_TM'       % n])
 
 def simplify_results(args, p3res):
-  'group primer3 results by the primer pair (result 1, 2, 3...)'
+  'group primer3 results by the primer pair (result 1, 2, 3...) and keep only relevant keys'
   # TODO split into left and right dicts each?
   n = 1
   results = []
@@ -291,6 +291,7 @@ def simplify_results(args, p3res):
         res[keys[k]] = p3res[k]
       except KeyError:
         return results
+    log(args, 'primer3 result: %s' % p3res)
     log(args, res)
     # keys = [re.sub('PRIMER_LEFT_%d_'  % n, 'left_' , k) for k in keys]
     # keys = [re.sub('PRIMER_RIGHT_%d_' % n, 'right_', k) for k in keys]
@@ -367,8 +368,12 @@ def hr_primers(args, genome, seq, homology_bp=1000):
   return [left_fwd_seq,  left_fwd_tm,  left_rev_seq,  left_rev_tm,
          right_fwd_seq, right_fwd_tm, right_rev_seq, right_rev_tm]
 
+def assert_primer3(args, seqid, flank, pairs):
+    if len(pairs) == 0:
+        raise Exception('Primer3 found no primers for %s %s flank' % (seqid, flank))
+
 def main():
-  args = parse(docopt(__doc__, version='cpf1primers 0.1'))
+  args = parse(docopt(__doc__, version='cpf1primers 0.2'))
   log(args, 'args: %s' % args, 2)
   genome = list(SeqIO.parse(args['genome'], 'genbank'))[0] # TODO look up the right way
   log(args, 'genome: %s' % str(genome.seq)[:50] + '...', 2)
@@ -397,6 +402,8 @@ def main():
       # here are the initial primers designed by primer3
       primers['left_flank' ] = simplify_results(args,  suggest_left_flank_primers(args, seq['left' ]))
       primers['right_flank'] = simplify_results(args, suggest_right_flank_primers(args, seq['right']))
+      assert_primer3(args, seq['id'], 'left' , primers[ 'left_flank'])
+      assert_primer3(args, seq['id'], 'right', primers['right_flank'])
 
       # TODO now we add restriction sites to each pair
       # TODO along with at least 2 more bp overhang
@@ -404,14 +411,14 @@ def main():
       # TODO WHEN ADDING GIBSON OVERLAPS, NEED TO DEAL WITH PAIRS OF PRIMER PAIRS INSTEAD OF EACH SEPARATE
       pairs2 = []
       for pair in primers['left_flank']:
-        l = RESTRICTION_SITE.lower() + pair['left_primer']
+        l = KPNI_SITE.lower() + pair['left_primer']
         r = str(Seq(l[-15:], generic_dna).reverse_complement()).lower() + pair['right_primer']
         pairs2.append({'left_primer': l, 'right_primer': r})
         # pairs2.append((add_restriction_sites(args, seq['left'], pair)))
       primers['left_flank'] = pairs2
       pairs2 = []
       for pair in primers['right_flank']:
-        r = RESTRICTION_SITE.lower() + pair['right_primer']
+        r = KPNI_SITE.lower() + pair['right_primer']
         l = str(Seq(r[-15:], generic_dna).reverse_complement()).lower() + pair['left_primer']
         pairs2.append({'left_primer': l, 'right_primer': r})
       primers['right_flank'] = pairs2
