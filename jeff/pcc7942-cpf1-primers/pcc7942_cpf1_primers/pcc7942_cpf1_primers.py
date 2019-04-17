@@ -261,13 +261,28 @@ def check_primers(args, seq, left_primer, right_primer):
   primers = primer3.designPrimers(seq_args, primer_args)
   return primers
 
-# TODO does this mean I should switch to Gibson because it can use almost any sequence equally?
+def assert_primer3(args, seqid, seq, piece, seq_args, primer_args, res):
+    if res['PRIMER_LEFT_NUM_RETURNED'] == 0 or res['PRIMER_RIGHT_NUM_RETURNED'] == 0:
+        err = '\n'.join([
+          'Primer3 found no primers for %s %s' % (seqid, piece),
+          'sequence: %s' % seq,
+          'seq_args: %s' % seq_args,
+          'primer_args: %s' % primer_args,
+          'results: %s' % res
+        ])
+        raise SystemExit(err)
 
 def suggest_left_flank_primers(args, seq):
-  return suggest_primers(args, seq, {'SEQUENCE_FORCE_RIGHT_START': len(seq)-1}) # TODO is this right?
+  seq_args = {'SEQUENCE_FORCE_RIGHT_START': len(seq['left'])-1}
+  res = suggest_primers(args, seq['left'], seq_args) # TODO is this right?
+  assert_primer3(args, seq['id'], seq['left'], 'left', seq_args, {}, res)
+  return res
 
 def suggest_right_flank_primers(args, seq):
-  return suggest_primers(args, seq, {'SEQUENCE_FORCE_LEFT_START': 0})
+  seq_args = {'SEQUENCE_FORCE_LEFT_START': 0}
+  res = suggest_primers(args, seq['right'], seq_args)
+  assert_primer3(args, seq['id'], seq['right'], 'right', seq_args, {}, res)
+  return res
 
 def suggest_coding_primers(args, seq):
     seq_args = {
@@ -280,15 +295,7 @@ def suggest_coding_primers(args, seq):
       'PRIMER_MAX_SIZE': 36, # the built-in max
     }
     res = suggest_primers(args, seq['cds'], seq_args, primer_args)
-    if res['PRIMER_LEFT_NUM_RETURNED'] == 0 or res['PRIMER_RIGHT_NUM_RETURNED'] == 0:
-        err = '\n'.join([
-          'Primer3 found no primers for %s cds :(' % seq['id'],
-          'sequence: %s' % seq['cds'],
-          'seq_args: %s' % seq_args,
-          'primer_args: %s' % primer_args,
-          'results: %s' % res
-        ])
-        raise SystemExit(err)
+    assert_primer3(args, seq['id'], seq['cds'], 'cds', seq_args, primer_args, res)
     return res
 
 def extract_result(args, p3res, n):
@@ -371,10 +378,6 @@ def hr_primers(args, genome, seq, homology_bp=1000):
   return [left_fwd_seq,  left_fwd_tm,  left_rev_seq,  left_rev_tm,
          right_fwd_seq, right_fwd_tm, right_rev_seq, right_rev_tm]
 
-def assert_primer3(args, seqid, flank, pairs):
-    if len(pairs) == 0:
-        raise Exception('Primer3 found no primers for %s %s' % (seqid, flank))
-
 def print_row(*vals):
     print('\t'.join(vals))
 
@@ -430,10 +433,8 @@ def main():
       assert check_no_kpnI_site(args, seq['right'])
       log(args, 'cool, no existing kpnI sites in the flanks.')
       # here are the initial primers designed by primer3
-      ko['left_flank' ] = simplify_results(args,  suggest_left_flank_primers(args, seq['left' ]))[:args['nopts']]
-      ko['right_flank'] = simplify_results(args, suggest_right_flank_primers(args, seq['right']))[:args['nopts']]
-      assert_primer3(args, seq['id'], 'left' , ko[ 'left_flank'])
-      assert_primer3(args, seq['id'], 'right', ko['right_flank'])
+      ko['left_flank' ] = simplify_results(args,  suggest_left_flank_primers(args, seq))[:args['nopts']]
+      ko['right_flank'] = simplify_results(args, suggest_right_flank_primers(args, seq))[:args['nopts']]
       # TODO now we add restriction sites to each pair
       # TODO along with at least 2 more bp overhang
       # TODO and have primer3 re-score them before deciding on the best? or ipcress or something else
@@ -442,14 +443,16 @@ def main():
       for pair in ko['left_flank']:
         l = KPNI_SITE.lower() + pair['left_primer']
         r = str(Seq(l[-15:], generic_dna).reverse_complement()).lower() + pair['right_primer']
-        pairs2.append({'left_primer': l, 'right_primer': r})
+        pair.update({'left_primer': l, 'right_primer': r})
+        pairs2.append(pair)
         # pairs2.append((add_restriction_sites(args, seq['left'], pair)))
       ko['left_flank'] = pairs2
       pairs2 = []
       for pair in ko['right_flank']:
         r = KPNI_SITE.lower() + pair['right_primer']
         l = str(Seq(r[-15:], generic_dna).reverse_complement()).lower() + pair['left_primer']
-        pairs2.append({'left_primer': l, 'right_primer': r})
+        pair.update({'left_primer': l, 'right_primer': r})
+        pairs2.append(pair)
       ko['right_flank'] = pairs2
       # row += [guide_fwd, guide_rev]
       # left_fwd, left_rev, right_fwd, right_rev = hr_primers(args, genome, seq)
