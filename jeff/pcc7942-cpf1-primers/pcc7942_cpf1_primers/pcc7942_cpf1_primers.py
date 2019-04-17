@@ -21,12 +21,14 @@ The final HR template can be integrated into pSL2680 at the KpnI site.
 
 Usage:
   pcc7942_cpf1_primers (-h | --help)
-  pcc7942_cpf1_primers [-v...] [-g GENOME] LOCUS...
+  pcc7942_cpf1_primers [-v...] [-g GENOME] [-f FORMAT] [-n NOPTS] LOCUS...
 
 Options:
   -h, --help  Show this text
   -v          Print debugging information to stderr
   -g GENOME   PCC 7942 genome to use. [default: SynPCC7942_chr.gbk]
+  -f FORMAT   How to format the output. Current options are 'json' or 'table'. [default: json]
+  -n NOPTS    Design up to this many alternatives for each primer. [default: 1]
   LOCUS       Locus ID to generate primers for. You can put more than one, and use shorthand.
               For example, 0001 1021 means Synpcc7942_0001 and Synpcc7942_1021.
 '''
@@ -147,13 +149,13 @@ def crRNA(args, seq):
   locus = seq['id']
   # sequence = get_sequence(args, locus)
   targets = find_cpf1_targets(args, locus, seq['cds'])
-  primers = crRNA_primers_for_cpf1_target(targets[0])
+  primers = [crRNA_primers_for_cpf1_target(t) for t in targets[:args['nopts']]]
 
   # TODO any reason to be more selective?
   # TODO option to pick more than one per locus?
   # TODO can i use primer3 here to to guess which ones will be more effective?
   # target  = targets[0]
-  log(args, 'using the first one: %s' % primers, 2)
+  log(args, 'using the first %s: %s' % (args['nopts'], primers), 2)
   # fwd_primers = ['AGAT' + t for t in targets]
   # rev_primers = ['AGAC' + str(Seq(t, generic_dna).reverse_complement()) for t in targets]
   # pairs = zip(fwd_primers, rev_primers)
@@ -165,8 +167,7 @@ def crRNA(args, seq):
   # fwd_primer = primers['fwd']
   # rev_primer = primers['rev']
 
-  log(args, '%s crRNA forward primer: %s' % (locus, primers['fwd']), 2)
-  log(args, '%s crRNA reverse primer: %s' % (locus, primers['rev']), 2)
+  log(args, '%s crRNA primers: %s' % (locus, primers), 2)
   return primers
 
 
@@ -340,6 +341,8 @@ def parse(args):
   return {
     'verbose'  : args['-v'],
     'genome'   : args['-g'],
+    'format'   : args['-f'],
+    'nopts'    : int(args['-n']),
     'locusids' : ['Synpcc7942_%s' % a for a in args['LOCUS']]
   }
 
@@ -400,8 +403,8 @@ def main():
       log(args, 'cool, no existing kpnI sites in the flanks.')
 
       # here are the initial primers designed by primer3
-      primers['left_flank' ] = simplify_results(args,  suggest_left_flank_primers(args, seq['left' ]))
-      primers['right_flank'] = simplify_results(args, suggest_right_flank_primers(args, seq['right']))
+      primers['left_flank' ] = simplify_results(args,  suggest_left_flank_primers(args, seq['left' ]))[:args['nopts']]
+      primers['right_flank'] = simplify_results(args, suggest_right_flank_primers(args, seq['right']))[:args['nopts']]
       assert_primer3(args, seq['id'], 'left' , primers[ 'left_flank'])
       assert_primer3(args, seq['id'], 'right', primers['right_flank'])
 
@@ -429,4 +432,7 @@ def main():
       # print('\t'.join(row))
       log(args, 'primers: %s' % primers, 2)
       primers_by_seq[seq['id']] = primers
-  log(args, 'primers_by_seq: %s' % json.dumps(primers_by_seq, sort_keys=True, indent=2), 0)
+  if args['format'] == 'table':
+    pass # TODO print table here
+  else:
+    log(args, json.dumps(primers_by_seq, sort_keys=True, indent=2), 0)
