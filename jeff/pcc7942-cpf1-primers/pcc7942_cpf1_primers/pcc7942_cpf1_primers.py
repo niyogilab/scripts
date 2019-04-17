@@ -377,20 +377,20 @@ def print_row(*vals):
 
 def print_tsv(args, primers):
     # this is done the stupid way. the smart way would probably involve pandas?
-    print('\t'.join(['locusid', 'purpose', 'piece', 'primer', 'pair', 'sequence']))
+    print('\t'.join(['locusid', 'construct', 'piece', 'primer', 'pair', 'sequence']))
     for locusid in primers:
         n = 1
-        for pair in primers[locusid]['crRNA']:
+        for pair in primers[locusid]['knockout']['crRNA']:
             print_row(locusid, 'knockout', 'crRNA', 'fwd', str(n), pair['fwd'])
             print_row(locusid, 'knockout', 'crRNA', 'rev', str(n), pair['rev'])
             n += 1
         n = 1
-        for pair in primers[locusid]['left_flank']:
+        for pair in primers[locusid]['knockout']['left_flank']:
             print_row(locusid, 'knockout', 'left flank', 'fwd', str(n), pair['left_primer'])
             print_row(locusid, 'knockout', 'left flank', 'rev', str(n), pair['right_primer'])
             n += 1
         n = 1
-        for pair in primers[locusid]['right_flank']:
+        for pair in primers[locusid]['knockout']['right_flank']:
             print_row(locusid, 'knockout', 'right flank', 'fwd', str(n), pair['left_primer'])
             print_row(locusid, 'knockout', 'right flank', 'rev', str(n), pair['right_primer'])
             n += 1
@@ -415,43 +415,43 @@ def main():
       log(args, 'seq: %s' % shorten_seqs(args, seq), 1)
       # row = [seq['id']]
 
-      primers = {}
-      primers['crRNA'] = crRNA(args, seq)
-
+      # generate knockout primers
+      ko = {}
+      ko['crRNA'] = crRNA(args, seq)
       assert check_no_kpnI_site(args, seq['left'])
       assert check_no_kpnI_site(args, seq['right'])
       log(args, 'cool, no existing kpnI sites in the flanks.')
-
       # here are the initial primers designed by primer3
-      primers['left_flank' ] = simplify_results(args,  suggest_left_flank_primers(args, seq['left' ]))[:args['nopts']]
-      primers['right_flank'] = simplify_results(args, suggest_right_flank_primers(args, seq['right']))[:args['nopts']]
-      assert_primer3(args, seq['id'], 'left' , primers[ 'left_flank'])
-      assert_primer3(args, seq['id'], 'right', primers['right_flank'])
-
+      ko['left_flank' ] = simplify_results(args,  suggest_left_flank_primers(args, seq['left' ]))[:args['nopts']]
+      ko['right_flank'] = simplify_results(args, suggest_right_flank_primers(args, seq['right']))[:args['nopts']]
+      assert_primer3(args, seq['id'], 'left' , ko[ 'left_flank'])
+      assert_primer3(args, seq['id'], 'right', ko['right_flank'])
       # TODO now we add restriction sites to each pair
       # TODO along with at least 2 more bp overhang
       # TODO and have primer3 re-score them before deciding on the best? or ipcress or something else
       # TODO WHEN ADDING GIBSON OVERLAPS, NEED TO DEAL WITH PAIRS OF PRIMER PAIRS INSTEAD OF EACH SEPARATE
       pairs2 = []
-      for pair in primers['left_flank']:
+      for pair in ko['left_flank']:
         l = KPNI_SITE.lower() + pair['left_primer']
         r = str(Seq(l[-15:], generic_dna).reverse_complement()).lower() + pair['right_primer']
         pairs2.append({'left_primer': l, 'right_primer': r})
         # pairs2.append((add_restriction_sites(args, seq['left'], pair)))
-      primers['left_flank'] = pairs2
+      ko['left_flank'] = pairs2
       pairs2 = []
-      for pair in primers['right_flank']:
+      for pair in ko['right_flank']:
         r = KPNI_SITE.lower() + pair['right_primer']
         l = str(Seq(r[-15:], generic_dna).reverse_complement()).lower() + pair['left_primer']
         pairs2.append({'left_primer': l, 'right_primer': r})
-      primers['right_flank'] = pairs2
-
+      ko['right_flank'] = pairs2
       # row += [guide_fwd, guide_rev]
       # left_fwd, left_rev, right_fwd, right_rev = hr_primers(args, genome, seq)
       # row += hr_primers(args, genome, seq)
       # print('\t'.join(row))
-      log(args, 'primers: %s' % primers, 2)
-      primers_by_seq[seq['id']] = primers
+      log(args, 'ko: %s' % ko, 2)
+      primers_by_seq[seq['id']] = {'knockout': ko}
+
+      # TODO generate knock-in primers
+
   if args['format'] == 'table':
     print_tsv(args, primers_by_seq)
   else:
