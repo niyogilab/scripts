@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 
-# TODO refactor to pass around dicts rather than tuples
-# TODO refactor to print the table in IDT order format
-# TODO log levels
+# TODO 0) longer, more descriptive varnames
+# TODO 1) refactor to pass around dicts rather than tuples
+# TODO 2) flag for table vs vs simplified IDT table vs json and make people specify
+# TODO 3) add Tms, lengths to output
+# TODO 4) redesign for just KpnI digest of backbone, then 3-part gibson
+# TODO 5) add some common-sense checks so you don't have to worry about it
+# TODO 6) check crRNA design against paper!
+# TODO 7) force design of simple gibson primers when primer3 won't cooperate and see if they work
+# TODO 8) add NSI knock-ins too so you can order both sets today
 
 '''
-Generates a table of initial primers to try for Cpf1 knockouts of PCC 7942 genes.
-
+Generates a table of initial primers to try for Cpf1 knockouts + knock-ins of cyano genes.
 Designed for markerless KOs with pSL2680 from the Pakrasi lab (AddGene plasmid #85581).
+It defaults to the PCC 7942 genome, but theoretically should work in at least 2973, 7942, 6803, or 7201.
 The crRNA pair should be annealed and ligated into the plasmid directly;
 left and right pairs are for generating a standard HR template by PCR with the target gene missing.
-The final HR template has KpnI and SalI sites for integrating into pSL2680.
+The final HR template can be integrated into pSL2680 at the KpnI site.
+(Neutral site inserts coming soon)
 
 Usage:
   pcc7942_cpf1_primers (-h | --help)
@@ -20,7 +27,7 @@ Options:
   -h, --help  Show this text
   -v          Print debugging information to stderr
   -g GENOME   PCC 7942 genome to use. [default: SynPCC7942_chr.gbk]
-  LOCUS       Locus ID to generate primers for. You can put more than one.
+  LOCUS       Locus ID to generate primers for. You can put more than one, and use shorthand.
               For example, 0001 1021 means Synpcc7942_0001 and Synpcc7942_1021.
 '''
 
@@ -37,6 +44,7 @@ from copy         import deepcopy
 from docopt       import docopt
 from sys          import stderr
 
+# TODO any reason to make this configurable? maybe later
 RESTRICTION_SITE = 'GGTACC'
 
 # silence warnings
