@@ -431,7 +431,7 @@ def print_row(*vals):
 def print_tsv(args, primers):
     # this is done the stupid way. the smart way would probably involve pandas?
     print('\t'.join(['locusid', 'construct', 'piece', 'primer', 'pair', 'sequence']))
-    for locusid in primers:
+    for locusid in sorted(primers.keys()):
         n = 1
         for pair in primers[locusid]['knockout']['pre_crRNA']:
             print_row(locusid, 'knockout', 'pre-crRNA', 'fwd', str(n), pair['fwd'])
