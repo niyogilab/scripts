@@ -198,6 +198,8 @@ def suggest_primers(args, seq, extra_seq_args={}, extra_primer_args={}):
     'PRIMER_PICK_INTERNAL_OLIGO': False, # TODO do I want this too for checking?
     'PRIMER_PICK_RIGHT_PRIMER'  : True,
     'PRIMER_PRODUCT_SIZE_RANGE': [700, 1000],
+
+    # TODO how did i decide these?
     'PRIMER_OPT_SIZE': 20,
     'PRIMER_INTERNAL_MAX_SELF_END': 8,
     'PRIMER_MIN_SIZE': 18,
@@ -272,31 +274,76 @@ def assert_primer3(args, seqid, seq, piece, seq_args, primer_args, res):
         ])
         raise SystemExit(err)
 
-def suggest_left_flank_primers(args, seq):
+def suggest_left_flank_primers(args, seq, max_th=47, no_thermo=False):
   seq_args = {'SEQUENCE_FORCE_RIGHT_START': len(seq['left'])-1}
-  res = suggest_primers(args, seq['left'], seq_args) # TODO is this right?
-  assert_primer3(args, seq['id'], seq['left'], 'left', seq_args, {}, res)
+  primer_args = {'PRIMER_MIN_SIZE': 2, 'PRIMER_MAX_SIZE': 36, 'PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT': 0}
+  if no_thermo:
+    primer_args['PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT'] = 0
+  res = suggest_primers(args, seq['left'], seq_args, primer_args) # TODO is this right?
+  try:
+    assert_primer3(args, seq['id'], seq['left'], 'left', seq_args, primer_args, res)
+  except:
+    # almost all the failures are due to 'high hairpin stability', so
+    # i try relaxing that until it works anyway
+    if max_th > 80: # TODO what's a reasonable number?
+      if no_thermo:
+        raise
+      else:
+        primer_args['PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT'] = 0
+        return suggest_left_flank_primers(args, seq, no_thermo=True)
+    else:
+      return suggest_left_flank_primers(args, seq, max_th=max_th+1)
   return res
 
-def suggest_right_flank_primers(args, seq):
+def suggest_right_flank_primers(args, seq, max_th=47, no_thermo=False):
   seq_args = {'SEQUENCE_FORCE_LEFT_START': 0}
-  res = suggest_primers(args, seq['right'], seq_args)
-  assert_primer3(args, seq['id'], seq['right'], 'right', seq_args, {}, res)
+  primer_args = {'PRIMER_MIN_SIZE': 2, 'PRIMER_MAX_SIZE': 36, 'PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT': 0}
+  if no_thermo:
+    primer_args['PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT'] = 0
+  res = suggest_primers(args, seq['right'], seq_args, primer_args)
+  # try:
+  try:
+    assert_primer3(args, seq['id'], seq['right'], 'right', seq_args, primer_args, res)
+  except:
+    # almost all the failures are due to 'high hairpin stability', so
+    # i try relaxing that until it works anyway
+    if max_th > 80: # TODO what's a reasonable number?
+      if no_thermo:
+        rais
+      else:
+        primer_args['PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT'] = 0
+        return suggest_right_flank_primers(args, seq, no_thermo=True)
+    else:
+      return suggest_right_flank_primers(args, seq, max_th=max_th+1)
   return res
 
-def suggest_coding_primers(args, seq):
-    seq_args = {
-      'SEQUENCE_FORCE_LEFT_START': 0,
-      'SEQUENCE_FORCE_RIGHT_START': len(seq['cds'])-1,
-    }
-    primer_args = {
-      'PRIMER_PRODUCT_SIZE_RANGE': [36, 99999], # both ends fixed anyway
-      'PRIMER_MIN_SIZE': 2,  # must be > min product size
-      'PRIMER_MAX_SIZE': 36, # the built-in max
-    }
-    res = suggest_primers(args, seq['cds'], seq_args, primer_args)
+def suggest_coding_primers(args, seq, max_th=47, no_thermo=False):
+  seq_args = {
+    'SEQUENCE_FORCE_LEFT_START': 0,
+    'SEQUENCE_FORCE_RIGHT_START': len(seq['cds'])-1,
+  }
+  primer_args = {
+    'PRIMER_PRODUCT_SIZE_RANGE': [36, 99999], # both ends fixed anyway
+    'PRIMER_MIN_SIZE': 2,  # must be > min product size
+    'PRIMER_MAX_SIZE': 36, # the built-in max
+    'PRIMER_MAX_HAIRPIN_TH': max_th
+  }
+  if no_thermo:
+    primer_args['PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT'] = 0
+  res = suggest_primers(args, seq['cds'], seq_args, primer_args)
+  try:
     assert_primer3(args, seq['id'], seq['cds'], 'cds', seq_args, primer_args, res)
-    return res
+  except:
+    # almost all the failures are due to 'high hairpin stability', so
+    # i try relaxing that until it works anyway
+    if max_th > 80: # TODO what's a reasonable number?
+      if no_thermo:
+        raise
+      else:
+        return suggest_coding_primers(args, seq, no_thermo=True)
+    else:
+      return suggest_coding_primers(args, seq, max_th=max_th+1)
+  return res
 
 def extract_result(args, p3res, n):
   'extract info for just one pair of primers from primer3 result dict'
