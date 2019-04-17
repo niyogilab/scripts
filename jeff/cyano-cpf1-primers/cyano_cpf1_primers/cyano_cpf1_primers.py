@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 
-# TODO redesign to more generically join pieces 1, 2, 3 or 1, 2, 3, 4 by gibson (are there specific designers for this?)
-# TODO 3) add Tms, lengths to output
-# TODO 4) redesign for just KpnI digest of backbone, then 3-part gibson
-# TODO 5) add some common-sense checks so you don't have to worry about it
-# TODO 6) check pre-crRNA design against paper!
-# TODO 7) force design of simple gibson primers when primer3 won't cooperate and see if they work
-# TODO 8) add NSI knock-ins too so you can order both sets today
+# TODO remove kpnI ends and make everything gibson
+# TODO look up pSL2680 and add the proper sequence for it
+# TODO look up NSI plasmid and add the proper sequence for it
+# TODO add some common-sense checks so you don't have to worry about it
+# TODO check pre-crRNA design against paper!
 
 # TODO hey you can primer3.calcTm() to check that the overlaps have reasonable Tm on their own!
-# TODO add GC_CLAMP?
 
 '''
 Generates a table of initial primers to try for Cpf1 knockouts + knock-ins of cyano genes.
@@ -29,7 +26,7 @@ Options:
   -v          Print debugging information to stderr
   -g GENOME   PCC 7942 genome to use. [default: SynPCC7942_chr.gbk]
   -f FORMAT   How to format the output. Current options are 'json' or 'table'. [default: json]
-  -n NOPTS    Design up to this many alternatives for each primer. [default: 1]
+  -n NOPTS    Design up to this many alternatives for each primer pair. [default: 1]
   LOCUS       Locus ID to generate primers for. You can put more than one, and use shorthand.
               For example, 0001 1021 means Synpcc7942_0001 and Synpcc7942_1021.
 '''
