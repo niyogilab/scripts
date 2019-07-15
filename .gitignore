@@ -1,5 +1,4 @@
 *.egg-*
-*.pdf
 *.pyc
 *.sw*
 .venv
