@@ -26,6 +26,6 @@ Options:
 
   <tecan>            Tecan file to parse and merge with the plate metadata.
                      Plate IDs are detected based on Tecan filename + sheet
-                     name + measurement label (set in iControl/Magellan). This
+                     name + measurement label, set in iControl/Magellan. This
                      part is a little brittle; make sure to name the files
                      correctly!

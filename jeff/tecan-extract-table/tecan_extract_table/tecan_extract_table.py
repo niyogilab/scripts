@@ -120,6 +120,8 @@ def parse_csv(infile):
 def parse_time(cells):
     # time rows look like: Start Time:,5/3/2015 6:52:20 PM,,,,
     for line in cells:
+        if len(line) == 0:
+            continue
         if line[0] == 'Start Time:':
             time = strptime(line[1], '%m/%d/%Y %I:%M:%S %p')
             time = strftime('%Y-%m-%d %H:%M:%S', time)
@@ -132,6 +134,8 @@ def parse_sheet(rows, label):
     sections = []
     current  = []
     for row in rows:
+        if len(row) == 0:
+            continue
         if row[0].startswith('Label:') and len(current) > 0:
             sections.append(current)
             current = []

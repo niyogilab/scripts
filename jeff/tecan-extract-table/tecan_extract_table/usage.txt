@@ -19,7 +19,7 @@ Options:
                       the same csv file would (without some extra logic) cause
                       errors later.
 
-  <tecan>             Tecan file(s) to parse. Note that this doesn't work with
+  <tecan>             Tecan files to parse. Note that this doesn't work with
                       all possible Tecan measurements! I've only written parsers
                       for the readings I actually use. But it's easy to add
                       a new one when needed (just a short Python function).

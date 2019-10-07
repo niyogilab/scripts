@@ -100,7 +100,7 @@ merge_plate <- function(maps, plates)
 ### command line interface ###
 
 main <- function(args) {
-  maps   <- args[['map']]
+  maps   <- args[['<map>']]
   plates <- read_plates(args[['plate']])
   wells  <- merge_plate(maps, plates)
   if (is.null(args[['out']]))
